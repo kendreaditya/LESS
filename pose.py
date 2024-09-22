@@ -1,3 +1,7 @@
+"""
+Evalute pose with angles ONLY for each frame of a video.
+"""
+
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -45,6 +49,7 @@ def calculate_pose_angles(landmarks):
         "right": right_angles
     }
     return angles
+
 def process_video(video_path):
     mp_drawing = mp.solutions.drawing_utils
     mp_pose = mp.solutions.pose
@@ -57,10 +62,6 @@ def process_video(video_path):
     
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter('output.mp4', fourcc, fps, (width, height))
-
-    frame_count = 0
-    initial_angles = None
-    peak_angles = {k: -float('inf') for k in ["Knee Flexion", "Knee Valgus", "Tibial Rotation", "Hip Flexion", "Hip Adduction", "Hip Rotation"]}
 
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         while cap.isOpened():
@@ -85,52 +86,18 @@ def process_video(video_path):
 
                 current_angles = calculate_pose_angles(results.pose_landmarks.landmark)
 
-                angles_for_scoring_left = {
-                    "Initial Contact": current_angles["left"],
-                    "Peak Angle": current_angles["left"],
-                    "Displacement": current_angles["left"]
-                }
-
-                angles_for_scoring_right = {
-                    "Initial Contact": current_angles["right"],
-                    "Peak Angle": current_angles["right"],
-                    "Displacement": current_angles["right"]
-                }
-
-                # Score the angles for left and right
-                scores_left = angles.analyze_all_angles(angles_for_scoring_left)
-                scores_right = angles.analyze_all_angles(angles_for_scoring_right)
-
-                # Combine the scores into one dictionary
-                scores = {}
-                for phase, measurements in scores_left.items():
-                    scores[phase] = {}
-                    for measurement, result in measurements.items():
-                        scores[phase][measurement] = {
-                            "left_category": result["category"],
-                            "left_zscore": result["zscore"],
-                            "right_category": scores_right[phase][measurement]["category"],
-                            "right_zscore": scores_right[phase][measurement]["zscore"]
-                        }
-
-                # Display scores on the frame
+                # Display angles on the frame
                 y = 30
-                for phase, measurements in scores.items():
-                    cv2.putText(image, f"{phase}:", (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-                    y += 20
-                    for measurement, result in measurements.items():
-                        angle_left = current_angles["left"][measurement]
-                        angle_right = current_angles["right"][measurement]
-                        text_left = f"Left {measurement}: {result['left_category']} (Z: {result['left_zscore']:.2f}, Angle: {angle_left:.2f})"
-                        text_right = f"Right {measurement}: {result['right_category']} (Z: {result['right_zscore']:.2f}, Angle: {angle_right:.2f})"
-                        cv2.putText(image, text_left, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-                        y += 20
-                        cv2.putText(image, text_right, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+                for side, angles in current_angles.items():
+                    for measurement, angle in angles.items():
+                        text = f"{side.capitalize()} {measurement}: {angle:.2f}"
+                        cv2.putText(image, text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
                         y += 20
 
             out.write(image)
             cv2.imshow('Pose Estimation', image)
-            frame_count += 1
+            if cv2.waitKey(10) & 0xFF == ord('q'):
+                break
 
     cap.release()
     out.release()
