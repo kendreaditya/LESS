@@ -3,6 +3,7 @@ import mediapipe as mp
 import numpy as np
 import matplotlib.pyplot as plt
 from tools import calculate_pose_angles, calculate_accelerations
+from biomechanical import score_angles, score_accelerations
 
 mp_pose = mp.solutions.pose
 
@@ -16,7 +17,7 @@ def process_video(video_path):
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter('output_with_acceleration.mp4', fourcc, fps, (width, height))
+    out = cv2.VideoWriter('./outputs/output_with_acceleration.mp4', fourcc, fps, (width, height))
 
     angle_series = {
         "Left Knee Flexion": [], "Right Knee Flexion": [],
@@ -53,19 +54,38 @@ def process_video(video_path):
                 current_angles = calculate_pose_angles(results.pose_landmarks.landmark, mp_pose)
                 for joint, angle in current_angles.items():
                     angle_series[joint].append(angle)
+                
+                anlge_scores = score_angles(current_angles)
 
                 # Calculate accelerations if we have enough frames
                 if frame_count >= 30:  # Adjust this value based on your needs
                     accelerations = calculate_accelerations(angle_series, fps)
+                    acceleration_scores = score_accelerations(accelerations)
 
                     # Display angles and accelerations on the frame
                     y = 30
+                    def get_color(score):
+                        if score <= 33:
+                            return (0, 255, 0)  # Green
+                        elif score <= 66:
+                            return (0, 255, 255)  # Yellow
+                        else:
+                            return (0, 0, 255)  # Red
+
                     for joint in angle_series.keys():
                         angle = current_angles[joint]
                         accel = accelerations[joint][-1] if joint in accelerations else 0
-                        text = f"{joint}: Angle={angle:.2f}, Accel={accel:.2f}"
-                        cv2.putText(image, text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-                        y += 20
+
+                        texts = [
+                            ('Angle', angle, anlge_scores[joint]['risk_score'], anlge_scores[joint]['risk_category']),
+                            ('Accl', accel, acceleration_scores[joint]['risk_score'], acceleration_scores[joint]['risk_category'])
+                        ]
+
+                        for type, value, score, category in texts:
+                            color = (0, 0, 0) if type == 'Angle' else get_color(score)
+                            text = f"{joint}: {type}={value:.2f}, Score={score:.2f}, Category={category}"
+                            cv2.putText(image, text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+                            y += 20
 
                     # Update plots
                     axs[0].cla()
@@ -93,8 +113,8 @@ def process_video(video_path):
     plt.ioff()
 
     # Save the final plots as images
-    fig.savefig('angles_and_accelerations.png')
+    fig.savefig('./outputs/angles_and_accelerations.png')
     plt.show()
 
 if __name__ == "__main__":
-    process_video('pose.mov')  # Replace with your video file path
+    process_video('./outputs/pose.mov')  # Replace with your video file path
