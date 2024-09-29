@@ -71,10 +71,10 @@ def score_angles(angles):
 
 # Thresholds for angular accelerations (degrees/second^2)
 acceleration_thresholds = {
-    'Knee Flexion': {'moderate': 3000, 'high': 5000, 'extreme': 7000},
-    'Hip Flexion': {'moderate': 2000, 'high': 4000, 'extreme': 6000},
-    'Knee Valgus': {'moderate': 1000, 'high': 2000, 'extreme': 3000},
-    'Hip Adduction': {'moderate': 1000, 'high': 2000, 'extreme': 3000},
+    'Knee Flexion': {'moderate': 3000, 'high': 4000, 'extreme': 6000},
+    'Hip Flexion': {'moderate': 2000, 'high': 3500, 'extreme': 5500},
+    'Knee Valgus': {'moderate': 1000, 'high': 1500, 'extreme': 2500},
+    'Hip Adduction': {'moderate': 1000, 'high': 1500, 'extreme': 2500},
 }
 
 def score_acceleration(value, thresholds):

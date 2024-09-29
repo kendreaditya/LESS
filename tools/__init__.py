@@ -70,3 +70,15 @@ def calculate_accelerations(angle_series, fps):
             acceleration = savgol_filter(angles, window_length, poly_order, deriv=2, delta=dt)
             accelerations[joint] = acceleration
     return accelerations
+
+def calculate_jerks(accelerations, fps):
+    """Calculate jerks from acceleration series."""
+    jerks = {}
+    for joint, acceleration in accelerations.items():
+        if len(acceleration) >= 30:
+            window_length = min(31, len(acceleration))  # Ensure window_length is odd and <= len(acceleration)
+            poly_order = 2
+            dt = 1 / fps
+            jerk = savgol_filter(acceleration, window_length, poly_order, deriv=1, delta=dt)
+            jerks[joint] = jerk
+    return jerks
