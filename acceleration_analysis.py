@@ -78,8 +78,10 @@ def process_video(video_path):
 
                         accel_text = f"{joint}: Accl={accel:.2f}, Score={acceleration_scores[joint]['risk_score']:.2f}, Category={acceleration_scores[joint]['risk_category']}"
                         risk_score = acceleration_scores[joint]['risk_score']
-                        green_component = int(225 - (risk_score * 2.25))
-                        red_component = int(risk_score * 2.55)
+                        green_component = int(225 - (risk_score * 2.25)) * 20
+                        green_component = 255 if green_component > 255 else green_component
+                        red_component = int(risk_score * 2.55) * 20
+                        red_component = 255 if red_component > 255 else red_component
                         accel_color = (0, green_component, red_component)
                         cv2.putText(image, accel_text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, accel_color, 1)
                         y += 20
