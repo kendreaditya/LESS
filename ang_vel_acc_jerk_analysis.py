@@ -97,7 +97,7 @@ def process_video(video_path, show_windows=True):
                         y += 20
 
                         velocity_text = f"{joint}: Vel={velocity:.2f}"
-                        velocity_color = (0, 0, 255)
+                        velocity_color = (0, 0, 0)
                         cv2.putText(image, velocity_text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, velocity_color, 1)
                         y += 20
 
