@@ -58,6 +58,18 @@ def calculate_pose_angles(landmarks, mp_pose):
 
     return angles
 
+def calculate_velocities(angle_series, fps):
+    """Calculate angular velocities from angle series."""
+    velocities = {}
+    for joint, angles in angle_series.items():
+        if len(angles) >= 30:
+            window_length = min(31, len(angles))  # Ensure window_length is odd and <= len(angles)
+            poly_order = 2
+            dt = 1 / fps
+            velocity = savgol_filter(angles, window_length, poly_order, deriv=1, delta=dt)
+            velocities[joint] = velocity
+    return velocities
+
 def calculate_accelerations(angle_series, fps):
     """Calculate accelerations from angle series."""
     accelerations = {}
@@ -66,7 +78,6 @@ def calculate_accelerations(angle_series, fps):
             window_length = min(31, len(angles))  # Ensure window_length is odd and <= len(angles)
             poly_order = 2
             dt = 1 / fps
-            velocity = savgol_filter(angles, window_length, poly_order, deriv=1, delta=dt)
             acceleration = savgol_filter(angles, window_length, poly_order, deriv=2, delta=dt)
             accelerations[joint] = acceleration
     return accelerations
