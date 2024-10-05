@@ -68,7 +68,9 @@ def process_video(video_path, show_windows=True):
                     angle_series[joint].append(angle)
                 
                 # Calculate velocities, accelerations, and jerks if we have enough frames
-                if frame_count >= 30:  # Adjust this value based on your needs
+                window_length = 31  # Should be an odd integer
+                min_frames = window_length
+                if frame_count >= min_frames:
                     velocities = calculate_velocities(angle_series, fps)
                     accelerations = calculate_accelerations(angle_series, fps)
                     acceleration_scores = score_accelerations(accelerations)
@@ -82,6 +84,12 @@ def process_video(video_path, show_windows=True):
                         velocity = velocities[joint][-1] if joint in velocities else 0
                         accel = accelerations[joint][-1] if joint in accelerations else 0
                         jerk = jerks[joint][-1] if joint in jerks else 0
+                        if joint in acceleration_scores:
+                            accel_score = acceleration_scores[joint]['risk_score']
+                            accel_category = acceleration_scores[joint]['risk_category']
+                        else:
+                            accel_score = 0
+                            accel_category = 'Unknown'
 
                         angle_text = f"{joint}: Angle={angle:.2f}"
                         angle_color = (0, 0, 0)
@@ -93,12 +101,13 @@ def process_video(video_path, show_windows=True):
                         cv2.putText(image, velocity_text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, velocity_color, 1)
                         y += 20
 
-                        accel_text = f"{joint}: Accl={accel:.2f}, Score={acceleration_scores[joint]['risk_score']:.2f}, Category={acceleration_scores[joint]['risk_category']}"
-                        risk_score = acceleration_scores[joint]['risk_score']
-                        green_component = int(225 - (risk_score * 2.25)) * 20
-                        green_component = 255 if green_component > 255 else green_component
-                        red_component = int(risk_score * 2.55) * 20
-                        red_component = 255 if red_component > 255 else red_component
+                        accel_text = f"{joint}: Accl={accel:.2f}, Score={accel_score:.2f}, Category={accel_category}"
+                        # Determine color based on risk score
+                        risk_score = accel_score
+                        green_component = int(225 - (risk_score * 2.25))
+                        green_component = min(max(green_component, 0), 255)
+                        red_component = int(risk_score * 2.55)
+                        red_component = min(max(red_component, 0), 255)
                         accel_color = (0, green_component, red_component)
                         cv2.putText(image, accel_text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, accel_color, 1)
                         y += 20
@@ -142,6 +151,8 @@ def process_video(video_path, show_windows=True):
         plt.ioff()
 
         # Save the final plots as images
+        if not os.path.exists('./outputs'):
+            os.makedirs('./outputs')
         fig.savefig('./outputs/angles_velocities_accelerations_jerks.png')
         plt.show()
 
